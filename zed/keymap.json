@@ -1,0 +1,19 @@
+// OpenCode Collab — sample keybindings. Merge into your Zed keymap (`zed: open keymap`).
+//
+// Feature actions (Send selection / Annotate / Send review / Clear) are LSP *code
+// actions*: select code and open the code-actions menu (default `cmd-.`, bound below as
+// a convenience), then pick the 📤 / 📌 entry. The session picker is a task, bound here.
+[
+  {
+    "context": "Editor && mode == full",
+    "bindings": {
+      "cmd-alt-.": "editor::ToggleCodeActions"
+    }
+  },
+  {
+    "context": "Workspace",
+    "bindings": {
+      "cmd-alt-o": ["task::Spawn", { "task_name": "OpenCode: switch session" }]
+    }
+  }
+]

@@ -1,0 +1,27 @@
+id = "opencode-collab"
+name = "OpenCode Collab"
+version = "0.1.0"
+schema_version = 1
+authors = ["anirudh <varma.anirudh12@gmail.com>"]
+description = "Send selections and batched code-review annotations from Zed to OpenCode 2 sessions."
+repository = "https://github.com/anirudh/zed-opencode"
+
+# A companion language server is the only extension surface that can read the editor
+# selection (via code-action ranges) and render a review list (via diagnostics). It
+# forwards to OpenCode 2 through the `opencode api` CLI. See src/lib.rs and lsp/.
+[language_servers.opencode-review]
+name = "OpenCode Review"
+# We want this to work in every file, but Zed has no wildcard — a language server binds to
+# named languages. So we list a broad superset of Zed's languages plus "Plain Text", which
+# catches any file Zed doesn't otherwise recognize. Names that aren't installed are simply
+# skipped. If you work in a language not listed here, add its Zed language name.
+languages = [
+  "Plain Text",
+  "Astro", "Bash", "C", "C++", "C#", "Clojure", "CMake", "CSS",
+  "Dart", "Diff", "Dockerfile", "Elixir", "Elm", "Erlang", "Fish", "Go",
+  "GraphQL", "Groovy", "Haskell", "HEEX", "HTML", "Java", "JavaScript",
+  "JSON", "JSONC", "JSX", "Julia", "Kotlin", "LaTeX", "Lua", "Makefile",
+  "Markdown", "Nix", "Objective-C", "OCaml", "PHP", "Prisma", "Protobuf",
+  "Python", "R", "Ruby", "Rust", "Scala", "SCSS", "Shell Script", "SQL",
+  "Svelte", "Swift", "TOML", "TSX", "TypeScript", "Vue", "XML", "YAML", "Zig",
+]

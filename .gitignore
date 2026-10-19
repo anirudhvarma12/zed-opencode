@@ -1,0 +1,20 @@
+# Rust / extension build artifacts
+/target
+extension.wasm
+
+# LSP build output + deps (run `cd lsp && bun run build` to regenerate dist)
+lsp/dist
+lsp/node_modules
+node_modules
+
+# Logs / caches
+*.log
+.cache
+*.tsbuildinfo
+
+# Review scratch buffer (in case the extension is used within its own repo)
+.opencode-review.md
+
+# OS / editor cruft
+.DS_Store
+.idea
