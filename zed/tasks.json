@@ -6,10 +6,16 @@
 // worktree, and pins the one you choose (sends from this worktree then target it).
 //
 // Adjust the absolute path below to wherever you installed this repo.
+//
+// NOTE: the command deliberately does NOT reference $ZED_WORKTREE_ROOT. Zed hides a task
+// whenever a variable it references can't be resolved in the active context (terminal,
+// project panel, non-worktree buffer), which makes the task appear only intermittently.
+// Keeping it variable-free makes it always available; the CLI derives the worktree from
+// Zed's injected ZED_WORKTREE_ROOT env var, falling back to the task's cwd (project root).
 [
   {
     "label": "OpenCode: switch session",
-    "command": "node /Users/anirudh/workspace/zed-opencode/lsp/dist/cli.js pick \"$ZED_WORKTREE_ROOT\"",
+    "command": "node /Users/anirudh/workspace/zed-opencode/lsp/dist/cli.js pick",
     "use_new_terminal": false,
     "allow_concurrent_runs": false,
     "reveal": "always",

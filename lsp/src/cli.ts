@@ -53,9 +53,14 @@ async function pick(worktree: string) {
   stdout.write(`\n✓ Pinned "${chosen.title ?? chosen.id}". Sends from this worktree now go here.\n`);
 }
 
-const [cmd, worktree] = process.argv.slice(2);
-if (cmd !== "pick" || !worktree) {
-  stdout.write("usage: bun cli.ts pick <worktreeRoot>\n");
+const [cmd, worktreeArg] = process.argv.slice(2);
+// Resolve the worktree without requiring a $ZED_* arg in the task command: an explicit
+// arg wins, else Zed's injected env, else the task's cwd (Zed defaults it to the project
+// root). Keeping the task command free of $ZED_WORKTREE_ROOT means Zed always shows it,
+// instead of hiding it whenever that variable can't resolve in the active context.
+const worktree = worktreeArg || process.env.ZED_WORKTREE_ROOT || process.cwd();
+if (cmd !== "pick") {
+  stdout.write("usage: cli.js pick [worktreeRoot]\n");
   process.exit(1);
 }
 await pick(worktree);
