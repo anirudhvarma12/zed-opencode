@@ -8,7 +8,7 @@
  * (session.list / session.create / session.prompt) are stable across versions, whereas
  * the SDK 1.19.3 routes/bodies do not match server 2.0.32.
  */
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 
 const OPENCODE_BIN = process.env.OPENCODE_BIN || "opencode";
 
@@ -85,6 +85,26 @@ export async function listSessions(directory?: string): Promise<Session[]> {
   const args = ["session.list"];
   if (directory) args.push("--param", `directory=${directory}`);
   return unwrap<Session[]>(await ocApi(args)) || [];
+}
+
+/**
+ * Launch the OpenCode TUI in `directory`, attached to `sessionID`, inheriting the
+ * terminal (so it takes over the Zed task terminal). `-s <id>` continues the session,
+ * or creates it if it does not exist. Returns the TUI's exit code.
+ */
+export function launchTui(directory: string, sessionID: string): number {
+  const r = spawnSync(OPENCODE_BIN, ["--session", sessionID, directory], {
+    cwd: directory,
+    stdio: "inherit",
+  });
+  if (r.error) {
+    const hint =
+      (r.error as NodeJS.ErrnoException).code === "ENOENT"
+        ? `'${OPENCODE_BIN}' not found on PATH. Install OpenCode 2 or set OPENCODE_BIN.`
+        : r.error.message;
+    throw new OpencodeError("launching the OpenCode TUI failed", hint);
+  }
+  return r.status ?? 0;
 }
 
 /** Create a session rooted at `directory` (set via the body's `location`). */

@@ -1,9 +1,12 @@
 // OpenCode Collab — Zed tasks.
 //
 // Copy this into your global tasks (`zed: open tasks`) or a project `.zed/tasks.json`.
-// The session picker is a task because a language server cannot render a list picker;
-// it runs in Zed's integrated terminal, lists OpenCode sessions for the current
-// worktree, and pins the one you choose (sends from this worktree then target it).
+// These are tasks because a language server can render neither a list picker nor an
+// interactive TUI; they run in Zed's integrated terminal.
+//   - "OpenCode: switch session" lists existing sessions for the current worktree and
+//     pins the one you choose (sends from this worktree then target it).
+//   - "OpenCode: Start" creates a NEW session for the worktree, pins it, then opens the
+//     OpenCode TUI on that exact session (so Zed sends and the TUI share one session).
 //
 // Adjust the absolute path below to wherever you installed this repo.
 //
@@ -20,5 +23,13 @@
     "allow_concurrent_runs": false,
     "reveal": "always",
     "hide": "on_success"
+  },
+  {
+    "label": "OpenCode: Start",
+    "command": "node /Users/anirudh/workspace/zed-opencode/lsp/dist/cli.js start",
+    "use_new_terminal": true,
+    "reveal": "always",
+    "hide": "never",
+    "allow_concurrent_runs": true
   }
 ]

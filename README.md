@@ -55,7 +55,9 @@ cd lsp && bun install && bun run build   # -> lsp/dist/server.js, lsp/dist/cli.j
 
 1. **Pin a session:** run the **OpenCode: switch session** task (`cmd-alt-o`) and pick or
    create a session for this worktree. (If you skip this, the first send auto-pins the
-   most recent session, or creates one.)
+   most recent session, or creates one.) To instead start fresh, run **OpenCode: Start** —
+   it creates a *new* session for the worktree, pins it, and opens the OpenCode TUI on that
+   exact session, so Zed sends and the TUI share one session.
 2. **Send a reference:** select code → code actions (`cmd-alt-.`) → **📤 Send selection to
    OpenCode**.
 3. **Build a review:** select code → **📌 Annotate for OpenCode review** (repeat across
