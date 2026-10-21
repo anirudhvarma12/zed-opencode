@@ -52,20 +52,35 @@ const documents = new TextDocuments(TextDocument);
 const store = new Store();
 
 // Diagnostic log to a file we control (Zed's log view only shows server-emitted messages,
-// which is confusing). Set OPENCODE_LSP_DEBUG=0 to disable.
-import { appendFileSync, mkdirSync } from "node:fs";
+// which is confusing). Opt-in: set OPENCODE_LSP_DEBUG=1 to enable. It is OFF by default
+// because `dbg` must never touch disk on a hot path — logging on every code-action request
+// blocks the event loop and lets incoming LSP messages pile up in the read buffer.
+import { appendFileSync, mkdirSync, statSync, writeFileSync as writeFileSyncTrunc } from "node:fs";
 import { homedir } from "node:os";
 import { join as joinPath } from "node:path";
-const DEBUG = process.env.OPENCODE_LSP_DEBUG !== "0";
+const DEBUG = process.env.OPENCODE_LSP_DEBUG === "1";
 const LOG_FILE = joinPath(
   process.env.XDG_STATE_HOME || joinPath(homedir(), ".local", "state"),
   "zed-opencode",
   "lsp.log",
 );
+const LOG_MAX_BYTES = 5 * 1024 * 1024;
+if (DEBUG) {
+  try {
+    mkdirSync(joinPath(LOG_FILE, ".."), { recursive: true });
+  } catch {
+    /* ignore */
+  }
+}
 function dbg(msg: string) {
   if (!DEBUG) return;
   try {
-    mkdirSync(joinPath(LOG_FILE, ".."), { recursive: true });
+    // Cap the log so it can't grow without bound; reset once it passes the limit.
+    try {
+      if (statSync(LOG_FILE).size > LOG_MAX_BYTES) writeFileSyncTrunc(LOG_FILE, "");
+    } catch {
+      /* file may not exist yet */
+    }
     appendFileSync(LOG_FILE, `${new Date().toISOString()} ${msg}\n`);
   } catch {
     /* ignore */
@@ -83,6 +98,21 @@ function toast(type: MessageType, message: string) {
 let workspaceFolders: string[] = [];
 /** Files we have published diagnostics for, per worktree, so we can clear them. */
 const publishedUris = new Map<string, Set<string>>();
+
+/**
+ * In-memory annotation count per worktree, so the hot `onCodeAction` path never reads the
+ * state file from disk. The LSP is the only writer of annotations (the picker CLI only
+ * changes the pin), so this count is authoritative; seed it lazily from disk on first use.
+ */
+const annCount = new Map<string, number>();
+function annotationCount(wt: string): number {
+  let n = annCount.get(wt);
+  if (n === undefined) {
+    n = store.get(wt).annotations.length;
+    annCount.set(wt, n);
+  }
+  return n;
+}
 
 connection.onInitialize((params: InitializeParams) => {
   workspaceFolders = (params.workspaceFolders ?? [])
@@ -165,8 +195,7 @@ connection.onCodeAction((params) => {
   const hasSelection =
     params.range.start.line !== params.range.end.line ||
     params.range.start.character !== params.range.end.character;
-  const count = store.get(wt).annotations.length;
-  dbg(`codeAction: uri=${path} range=${JSON.stringify(params.range)} hasSelection=${hasSelection} annCount=${count}`);
+  const count = annotationCount(wt);
 
   // Always offer send/annotate (QuickFix is the kind Zed surfaces most reliably). With no
   // selection we fall back to the current line in the command handler, so the actions are
@@ -242,6 +271,7 @@ async function handleSendNow(wt: string, uri: string, range: Range) {
 async function handleAnnotate(wt: string, uri: string, range: Range) {
   const ann = buildAnnotation(uri, range);
   store.addAnnotation(wt, ann);
+  annCount.set(wt, store.get(wt).annotations.length);
   publishDiagnostics(wt);
   await writeScratch(wt);
   toast(MessageType.Info,
@@ -270,6 +300,7 @@ async function handleSendReview(wt: string) {
 
 function handleClear(wt: string) {
   store.clearAnnotations(wt);
+  annCount.set(wt, 0);
   publishDiagnostics(wt);
   void writeScratch(wt);
 }
@@ -315,10 +346,6 @@ function syncCommentsFromScratch(wt: string) {
   }
   if (store.updateComments(wt, parseScratch(content))) publishDiagnostics(wt);
 }
-
-documents.onDidOpen((e) => {
-  dbg(`didOpen: uri=${e.document.uri} lang=${e.document.languageId}`);
-});
 
 // When the scratch buffer changes in the editor, keep the diagnostics' comments in sync.
 documents.onDidChangeContent((e) => {
